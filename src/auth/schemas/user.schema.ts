@@ -12,14 +12,13 @@ export class OfficeWorker {
   password: string;
 
   @Prop({ required: true })
-  role: String;
+  role: string;
 
   @Prop({ required: true })
-  boss: String;
+  boss: string;
 
-  
   @Prop()
-  subordinators: String[];
+  subordinators: string[];
 }
 
 export const OfficeWorkerSchema = SchemaFactory.createForClass(OfficeWorker);

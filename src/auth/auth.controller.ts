@@ -7,7 +7,6 @@ import {
   Body,
   HttpException,
   HttpStatus,
-  Req,
   Param,
   Patch,
   UnauthorizedException,
@@ -20,7 +19,7 @@ import { UpdateDto } from './dto/update-boss.dto';
 import { Role } from './enums/role.enum';
 import { JwtAuthAdminGuard } from './guards/create-boss.jwt-auth.guard';
 import { JwtAuthBossGuard } from './guards/create-user.jwt-auth.guard';
-import { LoginAuthGuard } from './guards/login-auth.guard';
+
 import { JwtUpdateGuard } from './guards/update-boss.jwt-auth.guard';
 
 @Controller('')
@@ -64,8 +63,8 @@ export class AuthController {
 
   @UseGuards(JwtAuthAdminGuard)
   @Post('/create-boss')
-  async createBoss(@Body() createUserDto: CreateUserDto, @Req() req) {
-    return await this.authService.createBoss(createUserDto, req.user.userName);
+  async createBoss(@Body() createUserDto: CreateUserDto) {
+    return await this.authService.createBoss(createUserDto);
   }
 
   //   @UseGuards(LoginAuthGuard)

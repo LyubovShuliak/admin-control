@@ -1,4 +1,4 @@
-import { HttpException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -93,7 +93,7 @@ export class AuthService {
   async createUser(createUserDto: CreateUserDto) {
     return await this.getUserAndInsert(createUserDto);
   }
-  async createBoss(createUserDto: CreateUserDto, bossName) {
+  async createBoss(createUserDto: CreateUserDto) {
     return await this.getUserAndInsert(createUserDto);
   }
 

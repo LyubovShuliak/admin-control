@@ -1,13 +1,5 @@
 import { AuthGuard } from '@nestjs/passport';
-import {
-  Injectable,
-  CanActivate,
-  ExecutionContext,
-  UnauthorizedException,
-  HttpException,
-  HttpStatus,
-} from '@nestjs/common';
-import { Role } from '../enums/role.enum';
+import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 
 @Injectable()
 export class LoginAuthGuard extends AuthGuard('local') {

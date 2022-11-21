@@ -1,6 +1,5 @@
 import { AuthGuard } from '@nestjs/passport';
-import { Injectable, ForbiddenException } from '@nestjs/common';
-import { Role } from '../enums/role.enum';
+import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class JwtUpdateGuard extends AuthGuard('jwt') {
