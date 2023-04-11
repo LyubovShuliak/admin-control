@@ -1,12 +1,15 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
+import { MongooseModule } from '@nestjs/mongoose';
 import { PassportModule } from '@nestjs/passport';
+
+import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
-import { jwtConstants } from './constants';
+
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { LocalStrategy } from './strategies/local.strategy';
-import { AuthController } from './auth.controller';
-import { MongooseModule } from '@nestjs/mongoose';
+
+import { jwtConstants } from './constants';
 import { OfficeWorker, OfficeWorkerSchema } from './schemas/user.schema';
 
 @Module({

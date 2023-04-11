@@ -1,14 +1,22 @@
-import { AuthGuard } from '@nestjs/passport';
-import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
+import {
+  CanActivate,
+  ExecutionContext,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 
 @Injectable()
-export class LoginAuthGuard extends AuthGuard('local') {
-  handleRequest(err: any, user: any) {
-    if (err || !user.password || !user.userName) {
-      throw (
-        err || new HttpException('Missing credentials', HttpStatus.UNAUTHORIZED)
-      );
+export class JwtLoginUpGuard implements CanActivate {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const request = context.switchToHttp().getRequest();
+    const user = request.body;
+
+    if (!user.email || !user.password) {
+      throw new UnauthorizedException('Credentials are incomplete');
     }
-    return user;
+
+    request['user'] = user;
+
+    return true;
   }
 }

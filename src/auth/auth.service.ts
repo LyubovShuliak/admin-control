@@ -1,14 +1,19 @@
-import { Injectable } from '@nestjs/common';
+import {
+  HttpException,
+  HttpStatus,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { CreateUserDto } from './dto/create-user.dto';
-import { OfficeWorker, UserDocument } from './schemas/user.schema';
-
 import * as bcrypt from 'bcryptjs';
-import { AuthorizeUserDto } from './dto/authorize-user.dto';
-import { Role } from './enums/role.enum';
-import { UpdateDto } from './dto/update-boss.dto';
+import { Model } from 'mongoose';
+
+import { OfficeWorker, UserDocument } from './schemas/user.schema';
+import { SALT } from 'src/auth/constants';
+
+import { CreateUserDto } from './dto/create-user.dto';
+import { AuthorizeUserDto } from 'src/auth/dto/authorize-user.dto';
 
 @Injectable()
 export class AuthService {
@@ -16,131 +21,84 @@ export class AuthService {
     private readonly jwtService: JwtService,
     @InjectModel(OfficeWorker.name) private userModel: Model<UserDocument>,
   ) {}
-  async getUserAndInsert(user: CreateUserDto) {
-    const { password, userName, boss } = user;
 
-    const doesBossSignUp = await this.userModel.findOne({
-      userName: boss,
-    });
-    if (!doesBossSignUp) {
-      return {
-        error: 'Boss not exist',
-      };
-    }
+  async createUser(createUserDto: CreateUserDto) {
+    const { password, userName, email } = createUserDto;
 
-    const doesUserAlreadySignUp = await this.userModel.findOne({
-      userName: userName,
+    const userExists = await this.userModel.findOne({
+      userName,
+      email,
     });
 
-    if (doesUserAlreadySignUp) {
-      return {
-        error: 'User already exist',
-      };
+    if (userExists) {
+      throw new UnauthorizedException('User already exists');
     }
 
-    const saltRounds = 10;
+    const hash = await bcrypt.hash(password, SALT);
 
-    const hash = await bcrypt.hash(password, saltRounds);
-
-    await this.userModel.insertMany([
-      {
-        ...user,
-        password: hash,
-      },
-    ]);
-    await this.userModel.updateOne(
-      { userName: boss },
-      { $push: { subordinators: userName } },
-    );
-    return user;
-  }
-
-  async createAdmin(createUserDto: any) {
-    const { password, userName } = createUserDto;
-
-    const doesAdminExist = await this.userModel.findOne({
-      userName: userName,
-    });
-
-    if (doesAdminExist) {
-      return {
-        error: 'Admin already exist',
-      };
-    }
-
-    const saltRounds = 10;
-
-    const hash = await bcrypt.hash(password, saltRounds);
-
-    const admin = {
-      userName: createUserDto.userName,
-      role: Role.Admin,
-      boss: Role.Admin,
+    const user = {
+      userName,
       password: hash,
+      email,
     };
-
-    await this.userModel.insertMany([admin]);
-
+    await this.userModel.insertMany(user);
     return {
       access_token: this.jwtService.sign({
-        userName: createUserDto.userName,
-        role: Role.Admin,
-        boss: Role.Admin,
+        email: createUserDto.email,
+        password: hash,
       }),
     };
   }
 
-  async createUser(createUserDto: CreateUserDto) {
-    return await this.getUserAndInsert(createUserDto);
-  }
-  async createBoss(createUserDto: CreateUserDto) {
-    return await this.getUserAndInsert(createUserDto);
-  }
-
-  async validateUser(userName: string, password: string): Promise<any> {
-    const user = await this.userModel.findOne({ userName: userName });
+  async validateUser({
+    email,
+    password,
+  }: AuthorizeUserDto): Promise<CreateUserDto> {
+    const user = await this.userModel.findOne(
+      { email },
+      { __v: false, _id: false },
+    );
 
     if (!user) {
-      return { error: 'Not found' };
+      throw new HttpException('User not exist', HttpStatus.NOT_FOUND);
     }
 
     const isEqual = await bcrypt.compare(password, user.password);
-
+    console.log(user);
     if (user && isEqual) {
       return user;
+    } else {
+      throw new HttpException('Wrong password', HttpStatus.BAD_REQUEST);
     }
-    return null;
   }
 
   async login(user: AuthorizeUserDto) {
-    const res = await this.validateUser(user.userName, user.password);
-    if (res.error) {
-      return res;
-    }
-    if (res) {
-      const payload = {
-        userName: res.userName,
-        role: res.role,
-        boss: res.boss,
-      };
-      return {
-        access_token: this.jwtService.sign(payload),
-      };
+    const res = await this.validateUser(user);
+
+    const payload = {
+      password: res.password,
+      email: res.email,
+    };
+    return {
+      access_token: this.jwtService.sign(payload),
+    };
+  }
+
+  async changePassword({ email }: AuthorizeUserDto, newPassword) {
+    const hash = await bcrypt.hash(newPassword, SALT);
+    const updatePassword = await this.userModel
+      .findOneAndUpdate(
+        {
+          email,
+        },
+        { password: hash },
+        { projection: { __v: false, _id: false } },
+      )
+      .lean();
+    if (!updatePassword) {
+      throw new HttpException('Wrong password', HttpStatus.CONFLICT);
     } else {
-      return { error: 'Wrong credetials' };
+      return { access_token: this.jwtService.sign(updatePassword) };
     }
-  }
-
-  async changeBoss(update: UpdateDto) {
-    return await this.userModel.findOneAndUpdate(
-      { userName: update.userName },
-      { boss: update.newBoss },
-    );
-  }
-
-  async getSubordinates(role, userName) {
-    const subs = await this.userModel.findOne({ userName: userName }).lean();
-
-    return { [role]: userName, subs: subs ? subs.subordinators : [] };
   }
 }

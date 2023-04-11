@@ -1,20 +1,22 @@
-import { AuthGuard } from '@nestjs/passport';
-import { Injectable, ForbiddenException } from '@nestjs/common';
-import { Role } from '../enums/role.enum';
-import { InjectModel } from '@nestjs/mongoose';
-import { OfficeWorker, UserDocument } from '../schemas/user.schema';
-import { Model } from 'mongoose';
+import {
+  CanActivate,
+  ExecutionContext,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
+
 @Injectable()
-export class JwtAuthBossGuard extends AuthGuard('jwt') {
-  constructor(
-    @InjectModel(OfficeWorker.name) private userModel: Model<UserDocument>,
-  ) {
-    super();
-  }
-  handleRequest(err: any, user: any) {
-    if (err || user.role !== Role.Boss) {
-      throw err || new ForbiddenException();
+export class JwtSignUpGuard implements CanActivate {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const request = context.switchToHttp().getRequest();
+    const user = request.body;
+
+    if (!user.email || !user.userName || !user.password) {
+      throw new UnauthorizedException('Credentials are incomplete');
     }
-    return user;
+
+    request['user'] = user;
+
+    return true;
   }
 }
