@@ -14,5 +14,7 @@ steps:
     args: ['run', 'build']
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: 'bash'
-    args: ['-c', 'gcloud config set app/cloud_build_timeout 16000&& gcloud app deploy']
+    args: ['-c', 'gcloud config set app/cloud_build_timeout 16000 && gcloud app deploy']
 timeout: '16000s'
+options:
+  logging: CLOUD_LOGGING_ONLY
